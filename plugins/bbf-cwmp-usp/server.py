@@ -384,6 +384,29 @@ async def list_tools() -> list[Tool]:
                 "properties": {},
             },
         ),
+        Tool(
+            name="get_rfc2119_keyword",
+            description=(
+                "Get RFC 2119 keyword definitions (MUST, SHOULD, MAY, etc.). "
+                "These keywords indicate requirement levels in IETF specifications "
+                "and are widely used in BBF/TR-069/TR-369 documents. "
+                "Call without arguments to list all keywords, or with a specific "
+                "keyword to get its definition."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string",
+                        "description": (
+                            "RFC 2119 keyword to look up. Examples: 'MUST', "
+                            "'SHOULD NOT', 'MAY', 'REQUIRED', 'OPTIONAL'. "
+                            "Omit to list all keyword definitions."
+                        ),
+                    },
+                },
+            },
+        ),
     ]
 
 
@@ -413,6 +436,8 @@ async def _handle_tool(name: str, arguments: dict) -> str:
         return await _tool_init_data(arguments)
     elif name == "index_data":
         return _tool_index_data()
+    elif name == "get_rfc2119_keyword":
+        return _tool_get_rfc2119_keyword(arguments)
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -523,6 +548,87 @@ def _tool_search_protocol_schema(args: dict) -> str:
             results.append(f"## USP Schema (Protobuf)\n\n{r}")
 
     return "\n\n".join(results) if results else "No results found."
+
+
+# ── RFC 2119 keyword definitions ──────────────────────────────────────
+
+_RFC2119_KEYWORDS: dict[str, str] = {
+    "MUST": (
+        'This word, or the terms "REQUIRED" or "SHALL", mean that the '
+        "definition is an absolute requirement of the specification."
+    ),
+    "MUST NOT": (
+        'This phrase, or the phrase "SHALL NOT", mean that the '
+        "definition is an absolute prohibition of the specification."
+    ),
+    "SHOULD": (
+        'This word, or the adjective "RECOMMENDED", mean that there '
+        "may exist valid reasons in particular circumstances to ignore a "
+        "particular item, but the full implications must be understood and "
+        "carefully weighed before choosing a different course."
+    ),
+    "SHOULD NOT": (
+        'This phrase, or the phrase "NOT RECOMMENDED" mean that '
+        "there may exist valid reasons in particular circumstances when the "
+        "particular behavior is acceptable or even useful, but the full "
+        "implications should be understood and the case carefully weighed "
+        "before implementing any behavior described with this label."
+    ),
+    "MAY": (
+        'This word, or the adjective "OPTIONAL", mean that an item is '
+        "truly optional. One vendor may choose to include the item because a "
+        "particular marketplace requires it or because the vendor feels that "
+        "it enhances the product while another vendor may omit the same item."
+    ),
+}
+
+# Aliases that map to a canonical keyword
+_RFC2119_ALIASES: dict[str, str] = {
+    "REQUIRED": "MUST",
+    "SHALL": "MUST",
+    "SHALL NOT": "MUST NOT",
+    "RECOMMENDED": "SHOULD",
+    "NOT RECOMMENDED": "SHOULD NOT",
+    "OPTIONAL": "MAY",
+}
+
+
+def _tool_get_rfc2119_keyword(args: dict) -> str:
+    keyword = args.get("keyword")
+
+    if keyword is None:
+        lines = ["# RFC 2119 — Keyword Definitions\n"]
+        for kw, definition in _RFC2119_KEYWORDS.items():
+            aliases = [a for a, canon in _RFC2119_ALIASES.items() if canon == kw]
+            alias_str = f" (also: {', '.join(aliases)})" if aliases else ""
+            lines.append(f"**{kw}**{alias_str}: {definition}\n")
+        lines.append(
+            "\nSource: RFC 2119 — https://www.ietf.org/rfc/rfc2119.txt"
+        )
+        return "\n".join(lines)
+
+    normalized = keyword.strip().upper()
+    # Resolve aliases
+    if normalized in _RFC2119_ALIASES:
+        canonical = _RFC2119_ALIASES[normalized]
+        definition = _RFC2119_KEYWORDS[canonical]
+        return (
+            f"**{normalized}** is an alias for **{canonical}**.\n\n"
+            f"Definition: {definition}\n\n"
+            f"Source: RFC 2119 — https://www.ietf.org/rfc/rfc2119.txt"
+        )
+
+    if normalized in _RFC2119_KEYWORDS:
+        definition = _RFC2119_KEYWORDS[normalized]
+        aliases = [a for a, canon in _RFC2119_ALIASES.items() if canon == normalized]
+        alias_str = f"\nAliases: {', '.join(aliases)}" if aliases else ""
+        return (
+            f"**{normalized}**: {definition}{alias_str}\n\n"
+            f"Source: RFC 2119 — https://www.ietf.org/rfc/rfc2119.txt"
+        )
+
+    valid = sorted(set(list(_RFC2119_KEYWORDS.keys()) + list(_RFC2119_ALIASES.keys())))
+    return f"Unknown keyword: '{keyword}'. Valid keywords: {', '.join(valid)}"
 
 
 async def _tool_init_data(args: dict) -> str:

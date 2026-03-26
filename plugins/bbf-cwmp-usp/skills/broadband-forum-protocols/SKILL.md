@@ -19,6 +19,7 @@ The server provides 5 tools. Choosing the right one matters — it's the differe
 | Understand CWMP protocol behavior | `search_cwmp_spec` | Searches the TR-069 specification (from PDF) |
 | Understand USP protocol behavior | `search_usp_spec` | Searches the TR-369 specification markdown |
 | Look up CWMP/USP message structures | `search_protocol_schema` | Searches XSD (CWMP) and protobuf (USP) schemas |
+| Understand RFC 2119 keywords (MUST, SHOULD, MAY…) | `get_rfc2119_keyword` | Returns precise definitions from RFC 2119 |
 
 ### When to use which — a decision tree
 
@@ -137,6 +138,18 @@ Searches the raw protocol schema definitions — XSD for CWMP, protobuf for USP.
 - CWMP: `"Inform RPC"`, `"ParameterValueStruct"`, `"SetParameterValues fault"`, `"SOAP envelope"`
 - USP: `"Get request message"`, `"Notify protobuf"`, `"Error message fields"`
 
+### `get_rfc2119_keyword` — RFC 2119 keyword definitions
+
+Returns the precise definition of RFC 2119 requirement-level keywords. These keywords (MUST, SHOULD, MAY, etc.) appear throughout all BBF specifications (TR-069, TR-369, TR-181, TR-098) and have exact meanings defined in RFC 2119.
+
+**Parameters:**
+- `keyword` (optional): specific keyword to look up. Omit to list all definitions.
+
+**Supported keywords:** MUST, MUST NOT, SHOULD, SHOULD NOT, MAY
+**Aliases (auto-resolved):** REQUIRED → MUST, SHALL → MUST, SHALL NOT → MUST NOT, RECOMMENDED → SHOULD, NOT RECOMMENDED → SHOULD NOT, OPTIONAL → MAY
+
+**When to use:** When reading spec results that contain capitalized MUST, SHOULD, MAY, SHALL, REQUIRED, OPTIONAL — these are not casual English. They carry precise normative meaning per RFC 2119. Use this tool to clarify the exact obligation level.
+
 ## Workflows
 
 ### Look up a specific parameter
@@ -178,6 +191,21 @@ When you need to find what parameters exist for something:
 
 1. `search_datamodel` with `protocol: "cwmp"` then `protocol: "usp"` for parameter differences
 2. `search_protocol_schema` for both to compare message structures
+
+### Interpret requirement levels in spec text
+
+When spec results contain capitalized keywords like MUST, SHOULD, MAY:
+
+1. `get_rfc2119_keyword` with the keyword → get the precise normative meaning
+2. Apply the definition to understand the obligation level
+
+**Example:** Spec says "The CPE MUST send an Inform message"
+→ `get_rfc2119_keyword(keyword="MUST")` → "absolute requirement of the specification"
+→ This means the CPE has no choice — it is a hard requirement, not a suggestion.
+
+**Example:** Spec says "The ACS SHOULD use TLS"
+→ `get_rfc2119_keyword(keyword="SHOULD")` → valid reasons may exist to ignore, but implications must be weighed
+→ This means TLS is strongly recommended but there are valid exceptions.
 
 ## Common Pitfalls
 

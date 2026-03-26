@@ -23,6 +23,11 @@ DIRECT_DOWNLOADS: dict[str, dict] = {
         "filename": "tr-069-amendment-6-corrigendum-1.pdf",
         "description": "TR-069 CWMP Specification (Amendment 6 Corrigendum 1)",
     },
+    "rfc": {
+        "url": "https://www.ietf.org/rfc/rfc2119.txt",
+        "filename": "rfc2119.txt",
+        "description": "RFC 2119 - Key words for use in RFCs to Indicate Requirement Levels",
+    },
 }
 
 # Repo configurations: patterns to match and how to select files
